@@ -217,7 +217,7 @@ function startMatch() {
   modeSettings = getGameMode(gameMode);
   blueScore = 0;
   orangeScore = 0;
-  remaining = CONFIG.matchSeconds;
+  remaining = modeSettings.duration;
   paused = false;
   running = true;
   resetBodies();
@@ -243,7 +243,7 @@ function goal(team) {
   const now = performance.now() / 1000;
   if (now - lastGoalAt < 1.8) return;
   lastGoalAt = now;
-  if (gameMode === "match") {
+  if (modeSettings.countsGoals) {
     if (team === "blue") blueScore += 1;
     else orangeScore += 1;
   }
@@ -390,7 +390,7 @@ function animate(now) {
     if (modeSettings.hasRival) updateRivalAI(dt);
     stepPhysics(world, dt);
     checkGoal();
-    if (gameMode === "match") {
+    if (modeSettings.hasTimer) {
       remaining = Math.max(0, remaining - dt);
       if (remaining === 0) finishMatch();
     }
