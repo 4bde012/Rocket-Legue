@@ -41,6 +41,16 @@ function addBox(x, y, z, sx, sy, sz, color, options = {}) {
 
 function makeArena() {
   addBox(0, -0.5, 0, 36, 1, 60, 0x145b48);
+  // Franjas sutiles de césped para dar profundidad y lectura de campo.
+  for (let i = 0; i < 10; i += 1) {
+    const stripe = new THREE.Mesh(
+      new THREE.BoxGeometry(36, 0.018, 3),
+      new THREE.MeshStandardMaterial({ color: i % 2 ? 0x17634f : 0x1a6b55, roughness: 0.95 })
+    );
+    stripe.position.set(0, 0.012, -27 + i * 6);
+    stripe.receiveShadow = true;
+    scene.add(stripe);
+  }
   const lineMat = new THREE.LineBasicMaterial({ color: 0xe9f7ff });
   const drawLine = (points) => scene.add(new THREE.Line(
     new THREE.BufferGeometry().setFromPoints(points.map(([x, z]) => new THREE.Vector3(x, 0.025, z))),
@@ -48,6 +58,10 @@ function makeArena() {
   ));
   drawLine([[-18,-30],[18,-30],[18,30],[-18,30],[-18,-30]]);
   drawLine([[-18,0],[18,0]]);
+  drawLine([[-10,-30],[-10,-22],[10,-22],[10,-30]]);
+  drawLine([[-10,30],[-10,22],[10,22],[10,30]]);
+  drawLine([[-10,-22],[10,-22]]);
+  drawLine([[-10,22],[10,22]]);
   const ring = new THREE.Mesh(new THREE.RingGeometry(5.8, 6, 64), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
   ring.rotation.x = -Math.PI / 2;
   ring.position.y = 0.03;
