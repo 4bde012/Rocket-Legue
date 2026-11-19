@@ -22,7 +22,7 @@ Abre la dirección local que muestre Vite en el terminal.
 | A / ← | Girar a la izquierda |
 | D / → | Girar a la derecha |
 | Espacio | Saltar en tierra / voltereta aérea en el aire |
-| Shift | Turbo |\n| Q / E | Control de giro en el aire |
+| Shift | Turbo |\n| Control | Derrape |\n| Q / E | Control de giro en el aire |
 | P | Pausar |
 
 ## Estructura
