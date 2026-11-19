@@ -158,6 +158,7 @@ let jumpCount = 0;
 let gamepadJumpWasDown = false;
 let boostActive = false;
 let cameraMode = "car";
+let kickoffCountdown = 0;
 let lastGoalAt = -10;
 let lastFrame = performance.now();
 
@@ -218,6 +219,7 @@ function startMatch() {
   blueScore = 0;
   orangeScore = 0;
   remaining = modeSettings.duration;
+  kickoffCountdown = 3;
   paused = false;
   running = true;
   resetBodies();
@@ -250,6 +252,7 @@ function goal(team) {
   setMessage(gameMode === "training" ? "¡GOL! SIGUE PRACTICANDO" : team === "blue" ? "¡GOL AZUL!" : "¡GOL NARANJA!");
   resetBodies();
   configureModeActors();
+  kickoffCountdown = 2;
   updateHud();
   window.setTimeout(() => { if (running && !paused) setMessage(""); }, 1400);
 }
@@ -374,6 +377,7 @@ function checkGoal() {
 
 function finishMatch() {
   running = false;
+  kickoffCountdown = 0;
   const result = blueScore > orangeScore ? "¡VICTORIA AZUL!" : orangeScore > blueScore ? "¡VICTORIA NARANJA!" : "¡EMPATE!";
   setMessage(result);
   $("start").textContent = "JUGAR DE NUEVO";
@@ -386,15 +390,27 @@ function animate(now) {
   lastFrame = now;
 
   if (running && !paused) {
-    readInput(dt);
-    if (modeSettings.hasRival) updateRivalAI(dt);
-    stepPhysics(world, dt);
-    checkGoal();
-    if (modeSettings.hasTimer) {
-      remaining = Math.max(0, remaining - dt);
-      if (remaining === 0) finishMatch();
+    if (kickoffCountdown > 0) {
+      const previousNumber = Math.ceil(kickoffCountdown);
+      kickoffCountdown = Math.max(0, kickoffCountdown - dt);
+      const currentNumber = Math.ceil(kickoffCountdown);
+      if (currentNumber !== previousNumber) {
+        setMessage(currentNumber > 0 ? String(currentNumber) : "¡YA!");
+        if (kickoffCountdown === 0) {
+          window.setTimeout(() => { if (running && !paused) setMessage(""); }, 450);
+        }
+      }
+    } else {
+      readInput(dt);
+      if (modeSettings.hasRival) updateRivalAI(dt);
+      stepPhysics(world, dt);
+      checkGoal();
+      if (modeSettings.hasTimer) {
+        remaining = Math.max(0, remaining - dt);
+        if (remaining === 0) finishMatch();
+      }
+      updateHud();
     }
-    updateHud();
     updateCamera(dt);
   }
   syncVisuals();
