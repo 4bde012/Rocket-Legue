@@ -80,7 +80,7 @@ canvas { display: block; }
   text-shadow: 0 0 20px #00bfff;
   pointer-events: none;
 }
-#pause {
+#pause, #cameraMode {
   position: fixed;
   right: 18px;
   top: 18px;
@@ -102,6 +102,16 @@ canvas { display: block; }
   justify-content: center;
   z-index: 20;
 }
+#cameraMode {
+  top: 64px;
+  color: white;
+  background: #102a44;
+  border: 1px solid #22d9ff;
+  border-radius: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  z-index: 10;
+}
 #menu h1 {
   font-size: clamp(40px, 8vw, 85px);
   margin: 0;
@@ -118,6 +128,16 @@ canvas { display: block; }
   border-radius: 8px;
   padding: 12px 16px;
   text-align: center;
+}
+#gameMode {
+  width: min(82vw, 310px);
+  margin-top: 16px;
+  padding: 12px 14px;
+  color: white;
+  background: #102a44;
+  border: 1px solid #22d9ff88;
+  border-radius: 9px;
+  font-size: 16px;
 }
 #menu button {
   padding: 15px 45px;
@@ -139,7 +159,13 @@ canvas { display: block; }
 <div id="menu">
   <h1>NEON STRIKE</h1>
   <p>FUTURISTIC CAR SOCCER</p>
-  <p>Marca más goles que tu rival antes de que termine el tiempo.</p>
+  <p>Elige cómo quieres jugar.</p>
+  <label for="gameMode">MODO DE JUEGO</label>
+  <select id="gameMode">
+    <option value="match">Partido local 1 contra 1</option>
+    <option value="training">Entrenamiento libre</option>
+  </select>
+  <p id="modeDescription">Juega contra la IA y marca más goles en 3 minutos.</p>
   <p id="loadError" role="alert"></p>
   <button id="start" type="button">JUGAR</button>
 </div>
@@ -151,6 +177,7 @@ canvas { display: block; }
 </div>
 
 <button id="pause">PAUSA</button>
+<button id="cameraMode" type="button">CÁMARA: COCHE</button>
 <div id="message"></div>
 <div id="boostText">BOOST</div>
 <div id="boostBox"><div id="boost"></div></div>
@@ -159,10 +186,13 @@ canvas { display: block; }
   W / ↑ : Acelerar<br>
   S / ↓ : Frenar / Marcha atrás<br>
   A / D : Girar<br>
-  ESPACIO : Saltar / voltereta<br>
+  ESPACIO : Primer salto / segundo salto y dodge<br>
   SHIFT : Turbo<br>
   CTRL : Derrapar<br>
   Q / E : Girar en el aire<br>
+  C : Cambiar cámara coche / pelota<br>
+  Mando: sticks, gatillos y botones A/B<br>
+  R : Reiniciar pelota en entrenamiento<br>
   P : Pausar
 </div>
 
