@@ -206,7 +206,7 @@ function readInput(dt) {
 
   const carPosition = carBody.translation();
   const carVelocity = carBody.linvel();
-  const grounded = carPosition.y <= 1.08 && carVelocity.y <= 0.25;
+  const grounded = carPosition.y <= 0.53 && Math.abs(carVelocity.y) <= 0.25;
   driveCar(carBody, { throttle, steer, boost: boosting, jumpPressed: jumpQueued, grounded }, dt);
   jumpQueued = false;
   $("boost").style.width = boost + "%";
