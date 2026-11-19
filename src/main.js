@@ -74,17 +74,36 @@ function makeArena() {
 
 function createCarVisual(bodyColor = 0x06aaff, glowColor = 0x023b72) {
   const group = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.8, 3.6), material(bodyColor, glowColor, 0.45));
+  // Carrocería redondeada y baja para una silueta de coche arcade.
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 20), material(bodyColor, glowColor, 0.55));
+  body.scale.set(1.12, 0.38, 1.88);
+  body.position.y = 0.02;
   body.castShadow = true;
   group.add(body);
 
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.8, 1.55), material(0x182b42, 0x071a2d));
-  cabin.position.set(0, 0.72, 0.1);
+  const hood = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.22, 1.05), material(bodyColor, glowColor, 0.48));
+  hood.position.set(0, 0.16, -1.02);
+  group.add(hood);
+
+  const cabin = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), material(0x10263d, 0x061a2d, 0.35));
+  cabin.scale.set(0.72, 0.48, 0.82);
+  cabin.position.set(0, 0.57, 0.18);
   group.add(cabin);
 
-  const glass = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.42, 0.08), material(0x52dfff, 0x1177aa));
-  glass.position.set(0, 0.72, -0.72);
-  group.add(glass);
+  const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.38, 0.08), material(0x66dfff, 0x126b99, 0.65));
+  windshield.position.set(0, 0.66, -0.43);
+  windshield.rotation.x = -0.22;
+  group.add(windshield);
+
+  const rearWing = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.1, 0.32), material(0x101c2b, 0x07101b, 0.6));
+  rearWing.position.set(0, 0.55, 1.58);
+  group.add(rearWing);
+
+  for (const x of [-0.72, 0.72]) {
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.08), new THREE.MeshBasicMaterial({ color: 0xbaf7ff }));
+    lamp.position.set(x, 0.12, -1.82);
+    group.add(lamp);
+  }
 
   const boostFlame = new THREE.Mesh(
     new THREE.ConeGeometry(0.34, 1.25, 16),
@@ -100,7 +119,7 @@ function createCarVisual(bodyColor = 0x06aaff, glowColor = 0x023b72) {
     for (const z of [-1.15, 1.15]) {
       const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.43, 0.43, 0.3, 16), material(0x11151d));
       wheel.rotation.z = Math.PI / 2;
-      wheel.position.set(x, -0.42, z);
+      wheel.position.set(x, -0.32, z);
       group.add(wheel);
       wheels.push(wheel);
     }
@@ -110,13 +129,24 @@ function createCarVisual(bodyColor = 0x06aaff, glowColor = 0x023b72) {
 }
 
 function createBallVisual() {
-  const mesh = new THREE.Mesh(
+  const group = new THREE.Group();
+  const core = new THREE.Mesh(
     new THREE.SphereGeometry(1.5, 32, 32),
-    new THREE.MeshStandardMaterial({ color: 0xf6fbff, metalness: 0.2, roughness: 0.28, emissive: 0x244466, emissiveIntensity: 0.35 })
+    new THREE.MeshStandardMaterial({ color: 0xeaf5ff, metalness: 0.28, roughness: 0.3, emissive: 0x244466, emissiveIntensity: 0.3 })
   );
-  mesh.castShadow = true;
-  scene.add(mesh);
-  return mesh;
+  core.castShadow = true;
+  group.add(core);
+  const patchMaterial = new THREE.MeshStandardMaterial({ color: 0x17334a, roughness: 0.55, metalness: 0.25 });
+  const patches = [[0,1,0],[0,-1,0],[1,0,0],[-1,0,0],[0,0,1],[0,0,-1]];
+  for (const [x,y,z] of patches) {
+    const patch = new THREE.Mesh(new THREE.SphereGeometry(0.34, 6, 5), patchMaterial);
+    patch.scale.set(1, 0.32, 1);
+    patch.position.set(x * 1.34, y * 1.34, z * 1.34);
+    patch.lookAt(x * 3, y * 3, z * 3);
+    group.add(patch);
+  }
+  scene.add(group);
+  return group;
 }
 
 const { RAPIER, world } = await createPhysicsWorld();
