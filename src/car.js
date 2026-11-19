@@ -2,9 +2,7 @@ export function createCarBody(RAPIER, world, position = { x: 0, y: 1.1, z: 12 })
   const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
     .setTranslation(position.x, position.y, position.z)
     .setLinearDamping(0.22)
-    .setAngularDamping(1.8)
-    // Las tres rotaciones están habilitadas para permitir maniobras aéreas.
-    .setEnabledRotations(true, true, true);
+    .setAngularDamping(1.8);
 
   const body = world.createRigidBody(bodyDesc);
   const collider = RAPIER.ColliderDesc.cuboid(1.05, 0.45, 1.8)
