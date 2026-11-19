@@ -12,10 +12,13 @@ export function isGoalPosition(position, options = {}) {
   const goalHeight = options.goalHeight ?? 4.5;
   const ballRadius = options.ballRadius ?? 1.5;
   const goalPlane = options.goalPlane ?? 29.2;
-  const safeHalfWidth = goalHalfWidth - ballRadius - 0.1;
+  const postHalfThickness = options.postHalfThickness ?? 0.18;
+  const crossbarHalfThickness = options.crossbarHalfThickness ?? 0.18;
+  const safeHalfWidth = goalHalfWidth - ballRadius - postHalfThickness;
+  const maxBallCenterY = goalHeight - ballRadius - crossbarHalfThickness;
 
   return Math.abs(position.z) > goalPlane
     && Math.abs(position.x) < safeHalfWidth
     && position.y >= ballRadius - 0.1
-    && position.y < goalHeight;
+    && position.y < maxBallCenterY;
 }
