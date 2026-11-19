@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { createPhysicsWorld, stepPhysics } from "./physics.js";
 import { createCarBody, driveCar } from "./car.js";
 import { createBallBody } from "./ball.js";
+import { getGameMode, isGoalPosition } from "./gameModes.js";
 
 const $ = (id) => document.getElementById(id);
 const CONFIG = { matchSeconds: 180, arenaX: 18, arenaZ: 30, goalHalfWidth: 5, goalHeight: 4.5 };
@@ -146,7 +147,7 @@ const ballVisual = createBallVisual();
 const keys = new Set();
 let running = false;
 let paused = false;
-let remaining = CONFIG.matchSeconds;
+let remaining = modeSettings.duration;
 let blueScore = 0;
 let orangeScore = 0;
 let boost = 100;
@@ -155,6 +156,7 @@ let jumpCount = 0;
 let gamepadJumpWasDown = false;
 let boostActive = false;
 let gameMode = "match";
+let modeSettings = getGameMode(gameMode);
 let cameraMode = "car";
 let lastGoalAt = -10;
 let lastFrame = performance.now();
@@ -165,12 +167,12 @@ function updateHud() {
   $("orangeScore").textContent = String(orangeScore);
   const mins = Math.floor(remaining / 60);
   const secs = Math.floor(remaining % 60);
-  $("timer").textContent = gameMode === "training" ? "PRÁCTICA" : String(mins).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
+  $("timer").textContent = !modeSettings.hasTimer ? "PRÁCTICA" : String(mins).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
   $("boost").style.width = boost + "%";
 }
 
 function configureModeActors() {
-  const training = gameMode === "training";
+  const training = !modeSettings.hasRival;
   rivalVisual.group.visible = !training;
   if (training) {
     rivalBody.setTranslation({ x: 0, y: -30, z: 0 }, true);
@@ -212,6 +214,7 @@ function startMatch() {
   // Oculta el menú al instante para que el clic tenga respuesta visual.
   $("menu").style.display = "none";
   gameMode = $("gameMode").value;
+  modeSettings = getGameMode(gameMode);
   blueScore = 0;
   orangeScore = 0;
   remaining = CONFIG.matchSeconds;
@@ -364,9 +367,7 @@ function updateRivalAI(dt) {
 
 remove fake wall assistfunction checkGoal() {
   const p = ballBody.translation();
-  // La pelota tiene radio 1.5: el centro debe atravesar el plano y caber
-  // entre los postes (5 m de semiancho menos el radio de la pelota).
-  if (Math.abs(p.z) > 29.2 && Math.abs(p.x) < CONFIG.goalHalfWidth - 1.6 && p.y >= 1.4 && p.y < CONFIG.goalHeight) {
+  if (isGoalPosition(p, { goalHalfWidth: CONFIG.goalHalfWidth, goalHeight: CONFIG.goalHeight })) {
     goal(p.z < 0 ? "blue" : "orange");
   }
 }
@@ -386,7 +387,7 @@ function animate(now) {
 
   if (running && !paused) {
     readInput(dt);
-    if (gameMode === "match") updateRivalAI(dt);
+    if (modeSettings.hasRival) updateRivalAI(dt);
     stepPhysics(world, dt);
     checkGoal();
     if (gameMode === "match") {
