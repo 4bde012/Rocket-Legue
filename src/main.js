@@ -231,7 +231,7 @@ function startMatch() {
   updateHud();
   $("pause").textContent = "PAUSA";
   $("menu").style.display = "none";
-  setMessage("");
+  setMessage(kickoffCountdown > 0 ? String(Math.ceil(kickoffCountdown)) : "");
 }
 
 function togglePause() {
