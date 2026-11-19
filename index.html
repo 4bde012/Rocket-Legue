@@ -1,0 +1,829 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEON STRIKE</title>
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #050914;
+  font-family: Arial, sans-serif;
+  color: white;
+}
+canvas { display: block; }
+
+#hud {
+  position: fixed;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  padding: 14px 25px;
+  background: #071526dd;
+  border: 1px solid #21d9ff88;
+  border-radius: 14px;
+  z-index: 5;
+}
+.score { font-size: 30px; font-weight: bold; }
+.blue { color: #19caff; }
+.orange { color: #ff8c32; }
+#timer { font-size: 23px; }
+#boostBox {
+  position: fixed;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  height: 17px;
+  border: 2px solid white;
+  border-radius: 20px;
+  overflow: hidden;
+}
+#boost {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,#00bfff,#a7ffff);
+}
+#boostText {
+  position: fixed;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  letter-spacing: 3px;
+}
+#help {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #c2d7e8;
+  background: #071526bb;
+  padding: 12px;
+  border-radius: 10px;
+}
+#message {
+  position: fixed;
+  top: 30%;
+  width: 100%;
+  text-align: center;
+  font-size: 42px;
+  font-weight: bold;
+  text-shadow: 0 0 20px #00bfff;
+  pointer-events: none;
+}
+#pause {
+  position: fixed;
+  right: 18px;
+  top: 18px;
+  padding: 10px 16px;
+  color: white;
+  background: #102a44;
+  border: 1px solid #22d9ff;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 10;
+}
+#menu {
+  position: fixed;
+  inset: 0;
+  background: #050914eF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+#menu h1 {
+  font-size: clamp(40px, 8vw, 85px);
+  margin: 0;
+  color: #20d9ff;
+  text-shadow: 0 0 30px #00aaff;
+}
+#menu p { color: #a8c5db; }
+#menu button {
+  padding: 15px 45px;
+  margin-top: 20px;
+  background: #00bfff;
+  border: none;
+  border-radius: 9px;
+  font-weight: bold;
+  font-size: 19px;
+  cursor: pointer;
+}
+#menu button:hover { background: white; }
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+  }
+}
+</script>
+</head>
+
+<body>
+
+<div id="menu">
+  <h1>NEON STRIKE</h1>
+  <p>FUTURISTIC CAR SOCCER</p>
+  <p>Marca más goles que tu rival antes de que termine el tiempo.</p>
+  <button id="start">JUGAR</button>
+</div>
+
+<div id="hud">
+  <div class="score blue" id="blueScore">0</div>
+  <div id="timer">03:00</div>
+  <div class="score orange" id="orangeScore">0</div>
+</div>
+
+<button id="pause">PAUSA</button>
+<div id="message"></div>
+<div id="boostText">BOOST</div>
+<div id="boostBox"><div id="boost"></div></div>
+
+<div id="help">
+  W / ↑ : Acelerar<br>
+  S / ↓ : Frenar / Marcha atrás<br>
+  A / D : Girar<br>
+  ESPACIO : Saltar<br>
+  SHIFT : Turbo<br>
+  P : Pausar
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ====================================
+// CONFIGURACIÓN
+// ====================================
+
+const CONFIG = {
+  fieldWidth: 36,
+  fieldLength: 60,
+  gravity: 22,
+  acceleration: 38,
+  maxSpeed: 34,
+  boostSpeed: 55,
+  turnSpeed: 2.8,
+  jumpForce: 10,
+  ballRadius: 1.5,
+  matchTime: 180
+};
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x071322);
+scene.fog = new THREE.Fog(0x071322, 55, 115);
+
+const camera = new THREE.PerspectiveCamera(
+  70, window.innerWidth/window.innerHeight, 0.1, 300
+);
+
+const renderer = new THREE.WebGLRenderer({
+  antialias: true
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// ====================================
+// ILUMINACIÓN
+// ====================================
+
+scene.add(new THREE.HemisphereLight(0x9bdfff, 0x152238, 2));
+
+const sun = new THREE.DirectionalLight(0xffffff, 2.5);
+sun.position.set(-15, 35, 15);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+scene.add(sun);
+
+for (const [x,z,color] of [
+  [-20,-25,0x00bfff],
+  [20,25,0xff7722],
+  [20,-25,0x00bfff],
+  [-20,25,0xff7722]
+]) {
+  const light = new THREE.PointLight(color, 80, 45);
+  light.position.set(x, 12, z);
+  scene.add(light);
+}
+
+// ====================================
+// MATERIALES
+// ====================================
+
+const mat = (color, emissive = 0x000000) =>
+  new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.55,
+    metalness: 0.25,
+    emissive,
+    emissiveIntensity: 0.7
+  });
+
+// ====================================
+// ESTADIO
+// ====================================
+
+const field = new THREE.Mesh(
+  new THREE.BoxGeometry(36, 1, 60),
+  mat(0x145b48)
+);
+field.position.y = -0.5;
+field.receiveShadow = true;
+scene.add(field);
+
+// Líneas del campo
+function line(x1,z1,x2,z2,color=0xffffff) {
+  const points = [
+    new THREE.Vector3(x1,0.03,z1),
+    new THREE.Vector3(x2,0.03,z2)
+  ];
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  scene.add(new THREE.Line(
+    geometry,
+    new THREE.LineBasicMaterial({color})
+  ));
+}
+
+line(-18,-30,18,-30);
+line(-18,30,18,30);
+line(-18,-30,-18,30);
+line(18,-30,18,30);
+line(-18,0,18,0);
+
+const circle = new THREE.Mesh(
+  new THREE.RingGeometry(5.8,6,64),
+  new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide
+  })
+);
+circle.rotation.x = -Math.PI/2;
+circle.position.y = 0.04;
+scene.add(circle);
+
+// Paredes laterales
+function wall(x,z,width,height,depth,color) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(width,height,depth),
+    new THREE.MeshStandardMaterial({
+      color,
+      transparent: true,
+      opacity: 0.3,
+      roughness: 0.2,
+      metalness: 0.4
+    })
+  );
+  mesh.position.set(x,height/2,z);
+  scene.add(mesh);
+}
+
+wall(-18.5,0,1,8,62,0x16bfff);
+wall(18.5,0,1,8,62,0x16bfff);
+
+// Fondos con huecos para las porterías
+function backWall(z) {
+  const depth = 1;
+  const h = 8;
+  const goalWidth = 10;
+
+  for (const side of [-1,1]) {
+    const piece = new THREE.Mesh(
+      new THREE.BoxGeometry((36-goalWidth)/2,h,depth),
+      mat(0x173b58)
+    );
+    piece.position.set(
+      side*(goalWidth/2+(36-goalWidth)/4),
+      h/2,z
+    );
+    scene.add(piece);
+  }
+
+  const top = new THREE.Mesh(
+    new THREE.BoxGeometry(goalWidth,h-4,depth),
+    mat(0x173b58)
+  );
+  top.position.set(0,6,z);
+  scene.add(top);
+}
+backWall(-30.5);
+backWall(30.5);
+
+// Porterías
+function makeGoal(z,color) {
+  const group = new THREE.Group();
+  const material = mat(color,color);
+
+  const postGeo = new THREE.BoxGeometry(0.45,4.5,0.45);
+
+  for (const x of [-5,5]) {
+    const post = new THREE.Mesh(postGeo,material);
+    post.position.set(x,2.25,0);
+    group.add(post);
+  }
+
+  const bar = new THREE.Mesh(
+    new THREE.BoxGeometry(10.4,0.45,0.45),
+    material
+  );
+  bar.position.set(0,4.5,0);
+  group.add(bar);
+
+  group.position.z = z;
+  scene.add(group);
+}
+makeGoal(-30,0x12cfff);
+makeGoal(30,0xff842c);
+
+// Decoración
+for (let i=0;i<12;i++) {
+  for (const side of [-1,1]) {
+    const pillar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.35,0.6,12,8),
+      mat(0x17324c)
+    );
+    pillar.position.set(side*23,6,(i-5.5)*9);
+    scene.add(pillar);
+  }
+}
+
+// ====================================
+// COCHE
+// ====================================
+
+function createCar(color) {
+  const group = new THREE.Group();
+
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(2.1,0.8,3.6),
+    mat(color,color)
+  );
+  body.position.y = 0.85;
+  body.castShadow = true;
+  group.add(body);
+
+  const cabin = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5,0.8,1.6),
+    mat(0x182b42)
+  );
+  cabin.position.set(0,1.5,-0.15);
+  group.add(cabin);
+
+  const windshield = new THREE.Mesh(
+    new THREE.BoxGeometry(1.35,0.45,0.08),
+    mat(0x52dfff,0x1177aa)
+  );
+  windshield.position.set(0,1.5,-0.96);
+  group.add(windshield);
+
+  const wheels = [];
+
+  for (const x of [-1.05,1.05]) {
+    for (const z of [-1.15,1.15]) {
+      const wheel = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.43,0.43,0.3,16),
+        mat(0x11151d)
+      );
+      wheel.rotation.z = Math.PI/2;
+      wheel.position.set(x,0.48,z);
+      group.add(wheel);
+      wheels.push(wheel);
+    }
+  }
+
+  const nose = new THREE.Mesh(
+    new THREE.BoxGeometry(1.3,0.12,0.3),
+    mat(0xffffff)
+  );
+  nose.position.set(0,0.9,-1.82);
+  group.add(nose);
+
+  scene.add(group);
+
+  return {
+    group,
+    wheels,
+    velocity: new THREE.Vector3(),
+    verticalVelocity: 0,
+    boost: 100,
+    grounded: true,
+    jumps: 0,
+    yaw: 0
+  };
+}
+
+const car = createCar(0x06aaff);
+car.group.position.set(0,0,15);
+
+// ====================================
+// PELOTA
+// ====================================
+
+const ball = new THREE.Mesh(
+  new THREE.SphereGeometry(CONFIG.ballRadius,32,32),
+  new THREE.MeshStandardMaterial({
+    color: 0xf6fbff,
+    metalness: 0.2,
+    roughness: 0.3,
+    emissive: 0x244466,
+    emissiveIntensity: 0.4
+  })
+);
+ball.position.set(0,CONFIG.ballRadius,0);
+ball.castShadow = true;
+scene.add(ball);
+
+const ballVelocity = new THREE.Vector3();
+const ballAngular = new THREE.Vector3();
+
+// ====================================
+// CONTROLES
+// ====================================
+
+const keys = {};
+
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+
+  if (e.code === 'Space') e.preventDefault();
+
+  if (e.code === 'KeyP' && !e.repeat) togglePause();
+  if (e.code === 'Space' && !e.repeat) jump();
+});
+
+window.addEventListener('keyup', e => {
+  keys[e.code] = false;
+});
+
+function jump() {
+  if (!running || paused) return;
+
+  if (car.jumps < 2) {
+    car.verticalVelocity = car.jumps === 0 ? 11 : 9;
+    car.grounded = false;
+    car.jumps++;
+  }
+}
+
+// ====================================
+// SISTEMA DE MOVIMIENTO
+// ====================================
+
+function updateCar(dt) {
+  const forward = new THREE.Vector3(
+    -Math.sin(car.yaw),0,-Math.cos(car.yaw)
+  );
+
+  const throttle =
+    (keys.KeyW || keys.ArrowUp ? 1 : 0) -
+    (keys.KeyS || keys.ArrowDown ? 1 : 0);
+
+  const steering =
+    (keys.KeyA || keys.ArrowLeft ? 1 : 0) -
+    (keys.KeyD || keys.ArrowRight ? 1 : 0);
+
+  const boosting =
+    (keys.ShiftLeft || keys.ShiftRight) &&
+    car.boost > 0 && throttle > 0;
+
+  const speed = car.velocity.dot(forward);
+
+  const acceleration = boosting
+    ? 70 : CONFIG.acceleration;
+
+  car.velocity.addScaledVector(
+    forward, throttle * acceleration * dt
+  );
+
+  const limit = boosting
+    ? CONFIG.boostSpeed : CONFIG.maxSpeed;
+
+  const horizontalSpeed = car.velocity.length();
+
+  if (horizontalSpeed > limit) {
+    car.velocity.setLength(limit);
+  }
+
+  // Giro proporcional a la velocidad
+  if (Math.abs(speed) > 0.5) {
+    car.yaw += steering *
+      CONFIG.turnSpeed *
+      Math.min(Math.abs(speed)/8,1.3) *
+      Math.sign(speed) * dt;
+  }
+
+  if (boosting) {
+    car.boost = Math.max(0,car.boost-32*dt);
+  } else {
+    car.boost = Math.min(100,car.boost+10*dt);
+  }
+
+  // Fricción
+  car.velocity.multiplyScalar(
+    Math.pow(0.985,dt*60)
+  );
+
+  car.group.position.addScaledVector(car.velocity,dt);
+
+  // Salto y gravedad
+  car.verticalVelocity -= CONFIG.gravity*dt;
+  car.group.position.y += car.verticalVelocity*dt;
+
+  if (car.group.position.y <= 0) {
+    car.group.position.y = 0;
+    car.verticalVelocity = 0;
+    car.grounded = true;
+    car.jumps = 0;
+  }
+
+  // Límites
+  car.group.position.x = THREE.MathUtils.clamp(
+    car.group.position.x,-16,16
+  );
+
+  car.group.position.z = THREE.MathUtils.clamp(
+    car.group.position.z,-28,28
+  );
+
+  car.group.rotation.y = car.yaw;
+
+  // Rotación de las ruedas
+  for (const wheel of car.wheels) {
+    wheel.rotation.x += speed*dt;
+  }
+
+  document.getElementById('boost').style.width =
+    car.boost+'%';
+}
+
+// ====================================
+// FÍSICAS DE PELOTA
+// ====================================
+
+function updateBall(dt) {
+  ballVelocity.y -= CONFIG.gravity*dt;
+
+  ball.position.addScaledVector(ballVelocity,dt);
+
+  // Suelo
+  if (ball.position.y < CONFIG.ballRadius) {
+    ball.position.y = CONFIG.ballRadius;
+
+    if (ballVelocity.y < 0) {
+      ballVelocity.y *= -0.78;
+      ballVelocity.x *= 0.98;
+      ballVelocity.z *= 0.98;
+    }
+
+    ballAngular.multiplyScalar(0.985);
+  }
+
+  // Paredes laterales
+  if (Math.abs(ball.position.x) > 17) {
+    ball.position.x = Math.sign(ball.position.x)*17;
+    ballVelocity.x *= -0.8;
+  }
+
+  // Fondos y goles
+  if (Math.abs(ball.position.z) > 30) {
+    const goal = Math.abs(ball.position.x) < 5 &&
+                 ball.position.y < 4.5;
+
+    if (goal) {
+      scoreGoal(ball.position.z < 0 ? 'blue' : 'orange');
+      return;
+    }
+
+    ball.position.z = Math.sign(ball.position.z)*30;
+    ballVelocity.z *= -0.8;
+  }
+
+  // Rotación visual
+  ball.rotation.x += ballAngular.x*dt;
+  ball.rotation.z += ballAngular.z*dt;
+
+  ballVelocity.multiplyScalar(
+    Math.pow(0.997,dt*60)
+  );
+}
+
+// ====================================
+// COLISIONES COCHE - PELOTA
+// ====================================
+
+function collideCarBall() {
+  const carCenter = car.group.position.clone();
+  carCenter.y += 0.9;
+
+  const difference = ball.position.clone().sub(carCenter);
+  const distance = difference.length();
+
+  const collisionDistance = 2.5;
+
+  if (distance < collisionDistance && distance > 0.001) {
+    const normal = difference.normalize();
+    const penetration = collisionDistance-distance;
+
+    ball.position.addScaledVector(normal,penetration);
+
+    const impact = Math.max(
+      0,car.velocity.dot(normal)
+    );
+
+    ballVelocity.addScaledVector(normal,impact*1.25+7);
+    ballVelocity.addScaledVector(car.velocity,0.55);
+
+    // Impulso hacia arriba
+    ballVelocity.y += 2.5;
+
+    ballAngular.set(
+      normal.z*impact,
+      0,
+      -normal.x*impact
+    );
+  }
+}
+
+// ====================================
+// CÁMARA
+// ====================================
+
+function updateCamera(dt) {
+  const offset = new THREE.Vector3(
+    0,7,11
+  );
+
+  offset.applyAxisAngle(
+    new THREE.Vector3(0,1,0),car.yaw
+  );
+
+  const target = car.group.position.clone()
+    .add(offset);
+
+  camera.position.lerp(target,1-Math.exp(-5*dt));
+
+  const look = car.group.position.clone();
+  look.y += 1.5;
+
+  camera.lookAt(look);
+}
+
+// ====================================
+// MARCADOR Y PARTIDA
+// ====================================
+
+let blueScore = 0;
+let orangeScore = 0;
+let timeLeft = CONFIG.matchTime;
+let running = false;
+let paused = false;
+let goalCooldown = false;
+
+const message = document.getElementById('message');
+
+function scoreGoal(team) {
+  if (goalCooldown) return;
+  goalCooldown = true;
+
+  if (team === 'blue') {
+    blueScore++;
+    document.getElementById('blueScore').textContent =
+      blueScore;
+    message.textContent = '¡GOL AZUL!';
+  } else {
+    orangeScore++;
+    document.getElementById('orangeScore').textContent =
+      orangeScore;
+    message.textContent = '¡GOL NARANJA!';
+  }
+
+  resetPositions();
+
+  setTimeout(() => {
+    message.textContent = '';
+    goalCooldown = false;
+  },1800);
+}
+
+function resetPositions() {
+  car.group.position.set(0,0,15);
+  car.velocity.set(0,0,0);
+  car.verticalVelocity = 0;
+  car.yaw = 0;
+  car.jumps = 0;
+
+  ball.position.set(0,CONFIG.ballRadius,0);
+  ballVelocity.set(0,0,0);
+  ballAngular.set(0,0,0);
+}
+
+function updateTimer(dt) {
+  timeLeft -= dt;
+
+  if (timeLeft <= 0) {
+    timeLeft = 0;
+    running = false;
+
+    message.textContent =
+      blueScore > orangeScore
+      ? '¡VICTORIA AZUL!'
+      : blueScore < orangeScore
+      ? '¡VICTORIA NARANJA!'
+      : '¡EMPATE!';
+
+    document.getElementById('start').textContent =
+      'JUGAR DE NUEVO';
+    document.getElementById('menu').style.display =
+      'flex';
+  }
+
+  const minutes = Math.floor(timeLeft/60);
+  const seconds = Math.floor(timeLeft%60);
+
+  document.getElementById('timer').textContent =
+    String(minutes).padStart(2,'0')+':'+
+    String(seconds).padStart(2,'0');
+}
+
+function togglePause() {
+  if (!running) return;
+
+  paused = !paused;
+  document.getElementById('pause').textContent =
+    paused ? 'CONTINUAR' : 'PAUSA';
+
+  message.textContent = paused ? 'PAUSA' : '';
+}
+
+document.getElementById('pause').onclick =
+  togglePause;
+
+// ====================================
+// BUCLE PRINCIPAL
+// ====================================
+
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  const dt = Math.min(clock.getDelta(),0.033);
+
+  if (running && !paused) {
+    updateCar(dt);
+    updateBall(dt);
+    collideCarBall();
+    updateCamera(dt);
+    updateTimer(dt);
+  }
+
+  renderer.render(scene,camera);
+}
+
+animate();
+
+// ====================================
+// INICIO
+// ====================================
+
+document.getElementById('start').onclick = () => {
+  blueScore = 0;
+  orangeScore = 0;
+  timeLeft = CONFIG.matchTime;
+
+  document.getElementById('blueScore').textContent = '0';
+  document.getElementById('orangeScore').textContent = '0';
+  document.getElementById('timer').textContent = '03:00';
+
+  message.textContent = '';
+  resetPositions();
+
+  paused = false;
+  running = true;
+
+  document.getElementById('pause').textContent = 'PAUSA';
+  document.getElementById('menu').style.display = 'none';
+};
+
+window.addEventListener('resize',() => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+
+</body>
+</html>
