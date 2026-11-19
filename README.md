@@ -21,11 +21,12 @@ Abre la dirección local que muestre Vite en el terminal.
 | S / ↓ | Marcha atrás |
 | A / ← | Girar a la izquierda |
 | D / → | Girar a la derecha |
-| Espacio / A (mando) | Saltar en tierra / voltereta aérea en el aire |
+| Espacio / A (mando) | Primer salto; pulsa de nuevo en el aire para el segundo salto/dodge |
 | Shift / B (mando) | Turbo |
 | Control / X (mando) | Derrape |
 | Q / E | Control de giro en el aire |
 | C | Cambiar entre cámara del coche y de la pelota |
+| R (entrenamiento) | Recolocar la pelota en el centro |
 | P | Pausar |
 | Stick izquierdo | Dirección y control aéreo |
 | Gatillos LT / RT | Marcha atrás / aceleración |
@@ -47,18 +48,21 @@ El mando utiliza la Gamepad API del navegador. La asignación exacta puede varia
 - Partido local contra un rival controlado por IA básica.
 - Coche conducible, aceleración, frenado/marcha atrás, dirección y derrape.
 - Turbo con reserva de energía.
-- Salto y maniobra aérea inicial.
+- Primer salto y segundo salto/dodge direccional en el aire.
+- Entrenamiento libre sin rival ni cronómetro; goles de práctica y reinicio de pelota con R.
 - Pelota 3D con colisiones, rebotes y rotación.
-- Estadio con límites físicos, porterías, marcador y cronómetro.
+- Estadio con límites físicos, porterías, marcador y cronómetro. La detección de gol tiene en cuenta el radio de la pelota y el hueco útil entre postes.
 - Pausa, reinicio tras gol y protección al cambiar de pestaña.
 - Cámara dinámica del coche y modo de seguimiento de pelota.
 - Entrada de teclado y compatibilidad inicial con mandos mediante Gamepad API.
+- Paso de física fijo a 60 Hz con límite de recuperación ante caídas de FPS.
+- Pruebas unitarias de modos y detección de goles (`npm test`).
 - Compilación de producción con Vite.
 
 ### Pendiente: siguientes fases
 
-1. **Jugabilidad y físicas:** salto doble real, volteretas direccionales diferenciadas, adherencia física a paredes/techo, tuning de impactos y pruebas de equilibrio.
-2. **Partidas locales:** equipos 1v1, 2v2 y 3v3 reales, entrenamiento, práctica y selección de estadios con sus respectivas colisiones.
+1. **Jugabilidad y físicas:** volteretas direccionales más completas, adherencia física real a paredes/techo, tuning de impactos y pruebas de equilibrio.
+2. **Partidas locales:** equipos 2v2 y 3v3, entrenamiento avanzado, selección de estadios y sus respectivas colisiones.
 3. **Interfaz y personalización:** garaje funcional, coches y pinturas originales, ajustes persistentes de controles/gráficos/sonido, pantallas de resultado.
 4. **Multijugador online:** servicio de servidor dedicado autoritativo, salas con códigos, matchmaking, sincronización, reconexión y medición de ping. No está implementado todavía; no se presenta el juego local como online.
 5. **Calidad y validación:** pruebas automatizadas de físicas y lógica, pruebas en navegadores/dispositivos, rendimiento, accesibilidad y revisión de errores.
