@@ -22,6 +22,7 @@ Abre la dirección local que muestre Vite en el terminal.
 | A / ← | Girar a la izquierda |
 | D / → | Girar a la derecha |
 | Espacio / A (mando) | Primer salto; pulsa de nuevo en el aire para el segundo salto/dodge |
+| Inicio de partido / saque | Cuenta atrás de 3 segundos |
 | Shift / B (mando) | Turbo |
 | Control / X (mando) | Derrape |
 | Q / E | Control de giro en el aire |
@@ -48,9 +49,11 @@ El mando utiliza la Gamepad API del navegador. La asignación exacta puede varia
 - Partido local contra un rival controlado por IA básica.
 - Coche conducible, aceleración, frenado/marcha atrás, dirección y derrape.
 - Turbo con reserva de energía.
+- Cuenta atrás de saque de 3 segundos.
 - Primer salto y segundo salto/dodge direccional en el aire.
 - Entrenamiento libre sin rival ni cronómetro; goles de práctica y reinicio de pelota con R.
 - Pelota 3D con colisiones, rebotes y rotación.
+- Rapier usa el paquete compatible con bundlers para que el WebAssembly se integre en la compilación de Vite; esto aumenta algo el tamaño del JavaScript inicial.
 - Estadio con límites físicos, porterías, marcador y cronómetro. La detección de gol tiene en cuenta el radio de la pelota y el hueco útil entre postes.
 - Pausa, reinicio tras gol y protección al cambiar de pestaña.
 - Cámara dinámica del coche y modo de seguimiento de pelota.
