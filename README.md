@@ -21,8 +21,8 @@ Abre la dirección local que muestre Vite en el terminal.
 | S / ↓ | Marcha atrás |
 | A / ← | Girar a la izquierda |
 | D / → | Girar a la derecha |
-| Espacio | Saltar |
-| Shift | Turbo |
+| Espacio | Saltar en tierra / voltereta aérea en el aire |
+| Shift | Turbo |\n| Q / E | Control de giro en el aire |
 | P | Pausar |
 
 ## Estructura
@@ -35,7 +35,7 @@ Abre la dirección local que muestre Vite en el terminal.
 
 ## Estado actual
 
-La base jugable incluye un coche, pelota con colisiones físicas, estadio, porterías, marcador, temporizador, turbo, salto y pausa. Es todavía un prototipo: faltan equipos controlados por IA, cámara más avanzada, saltos/volteretas aéreas, agarre en paredes, menús de garaje, multijugador en red y pruebas de rendimiento.
+La base jugable incluye un coche, pelota con colisiones físicas, estadio, porterías, marcador, temporizador, turbo, salto y pausa. Es todavía un prototipo: faltan IA más competitiva, cámara más avanzada, agarre real en paredes, menús de garaje, multijugador en red y pruebas de rendimiento. El control aéreo y la IA actuales son una primera versión experimental.
 
 ## Compilar
 
