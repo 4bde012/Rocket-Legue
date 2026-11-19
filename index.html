@@ -80,7 +80,7 @@ canvas { display: block; }
   text-shadow: 0 0 20px #00bfff;
   pointer-events: none;
 }
-#pause {
+#pause, #cameraMode {
   position: fixed;
   right: 18px;
   top: 18px;
@@ -101,6 +101,16 @@ canvas { display: block; }
   align-items: center;
   justify-content: center;
   z-index: 20;
+}
+#cameraMode {
+  top: 64px;
+  color: white;
+  background: #102a44;
+  border: 1px solid #22d9ff;
+  border-radius: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  z-index: 10;
 }
 #menu h1 {
   font-size: clamp(40px, 8vw, 85px);
@@ -151,6 +161,7 @@ canvas { display: block; }
 </div>
 
 <button id="pause">PAUSA</button>
+<button id="cameraMode" type="button">CÁMARA: COCHE</button>
 <div id="message"></div>
 <div id="boostText">BOOST</div>
 <div id="boostBox"><div id="boost"></div></div>
@@ -163,6 +174,8 @@ canvas { display: block; }
   SHIFT : Turbo<br>
   CTRL : Derrapar<br>
   Q / E : Girar en el aire<br>
+  C : Cambiar cámara coche / pelota<br>
+  Mando: sticks, gatillos y botones A/B<br>
   P : Pausar
 </div>
 
