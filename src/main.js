@@ -70,9 +70,9 @@ function makeArena() {
   }
 }
 
-function createCarVisual() {
+function createCarVisual(bodyColor = 0x06aaff, glowColor = 0x023b72) {
   const group = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.8, 3.6), material(0x06aaff, 0x023b72, 0.45));
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.8, 3.6), material(bodyColor, glowColor, 0.45));
   body.castShadow = true;
   group.add(body);
 
@@ -129,6 +129,8 @@ for (const z of [-30.5, 30.5]) {
 
 const carBody = createCarBody(RAPIER, world, { x: 0, y: 1.1, z: 15 });
 const carVisual = createCarVisual();
+const rivalBody = createCarBody(RAPIER, world, { x: 0, y: 1.1, z: -15 });
+const rivalVisual = createCarVisual(0xff8c32, 0x7a2600);
 const ballBody = createBallBody(RAPIER, world, { x: 0, y: 2, z: 0 });
 const ballVisual = createBallVisual();
 
@@ -140,6 +142,7 @@ let blueScore = 0;
 let orangeScore = 0;
 let boost = 100;
 let jumpQueued = false;
+let flipUsed = false;
 let lastGoalAt = -10;
 let lastFrame = performance.now();
 
@@ -158,6 +161,11 @@ function resetBodies() {
   carBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
   carBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
   carBody.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
+  rivalBody.setTranslation({ x: 0, y: 1.1, z: -15 }, true);
+  rivalBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  rivalBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  rivalBody.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
+  flipUsed = false;
   ballBody.setTranslation({ x: 0, y: 2, z: 0 }, true);
   ballBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
   ballBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
@@ -206,8 +214,17 @@ function readInput(dt) {
 
   const carPosition = carBody.translation();
   const carVelocity = carBody.linvel();
-  const grounded = carPosition.y <= 0.53 && Math.abs(carVelocity.y) <= 0.25;
-  driveCar(carBody, { throttle, steer, boost: boosting, jumpPressed: jumpQueued, grounded }, dt);
+  const grounded = carPosition.y <= 0.56 && Math.abs(carVelocity.y) <= 0.9;
+  if (grounded) flipUsed = false;
+  const flipPressed = jumpQueued && !grounded && !flipUsed;
+  if (flipPressed) flipUsed = true;
+  driveCar(carBody, {
+    throttle, steer, boost: boosting, jumpPressed: jumpQueued && grounded,
+    flipPressed, grounded,
+    airPitch: Number(keys.has("KeyS")) - Number(keys.has("KeyW")),
+    airRoll: Number(keys.has("KeyD")) - Number(keys.has("KeyA")),
+    airYaw: Number(keys.has("KeyE")) - Number(keys.has("KeyQ"))
+  }, dt);
   jumpQueued = false;
   $("boost").style.width = boost + "%";
 }
@@ -219,6 +236,11 @@ function syncVisuals() {
   carVisual.group.quaternion.set(carRot.x, carRot.y, carRot.z, carRot.w);
   const speed = Math.hypot(carBody.linvel().x, carBody.linvel().z);
   for (const wheel of carVisual.wheels) wheel.rotation.x -= speed * 0.012;
+
+  const rivalPos = rivalBody.translation();
+  const rivalRot = rivalBody.rotation();
+  rivalVisual.group.position.set(rivalPos.x, rivalPos.y, rivalPos.z);
+  rivalVisual.group.quaternion.set(rivalRot.x, rivalRot.y, rivalRot.z, rivalRot.w);
 
   const ballPos = ballBody.translation();
   const ballRot = ballBody.rotation();
@@ -234,6 +256,34 @@ function updateCamera(dt) {
   const target = new THREE.Vector3(p.x, p.y, p.z).add(offset);
   camera.position.lerp(target, 1 - Math.exp(-5 * dt));
   camera.lookAt(p.x, p.y + 1, p.z);
+}
+
+function updateRivalAI(dt) {
+  const rivalPosition = rivalBody.translation();
+  const ballPosition = ballBody.translation();
+  const dx = ballPosition.x - rivalPosition.x;
+  const dz = ballPosition.z - rivalPosition.z;
+  const distance = Math.hypot(dx, dz);
+  const rotation = rivalBody.rotation();
+  const yaw = Math.atan2(
+    2 * (rotation.w * rotation.y + rotation.x * rotation.z),
+    1 - 2 * (rotation.y * rotation.y + rotation.z * rotation.z)
+  );
+  const forwardX = -Math.sin(yaw);
+  const forwardZ = -Math.cos(yaw);
+  const cross = forwardZ * dx - forwardX * dz;
+  const dot = forwardX * dx + forwardZ * dz;
+  const angle = Math.atan2(cross, dot);
+  const steerAI = Math.max(-1, Math.min(1, angle * 1.8));
+  const rivalGrounded = rivalPosition.y <= 0.56 && Math.abs(rivalBody.linvel().y) <= 0.9;
+
+  driveCar(rivalBody, {
+    throttle: distance > 2.8 ? 1 : 0.25,
+    steer: steerAI,
+    boost: distance > 12 && Math.abs(angle) < 0.55,
+    grounded: rivalGrounded,
+    jumpPressed: rivalGrounded && distance < 4 && ballPosition.y > 2.5 && Math.random() < dt * 0.7
+  }, dt);
 }
 
 function checkGoal() {
@@ -258,6 +308,7 @@ function animate(now) {
 
   if (running && !paused) {
     readInput(dt);
+    updateRivalAI(dt);
     stepPhysics(world, dt);
     checkGoal();
     remaining = Math.max(0, remaining - dt);
