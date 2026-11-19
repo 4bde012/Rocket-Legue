@@ -169,6 +169,24 @@ function updateHud() {
   $("boost").style.width = boost + "%";
 }
 
+function configureModeActors() {
+  const training = gameMode === "training";
+  rivalVisual.group.visible = !training;
+  if (training) {
+    rivalBody.setTranslation({ x: 0, y: -30, z: 0 }, true);
+    rivalBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    rivalBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  }
+}
+
+function resetBall() {
+  ballBody.setTranslation({ x: 0, y: 2, z: 0 }, true);
+  ballBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  ballBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
+  lastGoalAt = performance.now() / 1000;
+  setMessage("PELOTA REINICIADA");
+}
+
 function resetBodies() {
   // Cada saque empieza con controles y estado aéreo limpios.
   keys.clear();
@@ -200,6 +218,11 @@ function startMatch() {
   paused = false;
   running = true;
   resetBodies();
+  configureModeActors();
+  lastGoalAt = -10;
+  $("modeDescription").textContent = gameMode === "training"
+    ? "Entrena sin rival ni cronómetro. Pulsa R para recolocar la pelota."
+    : "Juega contra la IA y marca más goles en 3 minutos.";
   updateHud();
   $("pause").textContent = "PAUSA";
   $("menu").style.display = "none";
@@ -223,6 +246,7 @@ function goal(team) {
   }
   setMessage(gameMode === "training" ? "¡GOL! SIGUE PRACTICANDO" : team === "blue" ? "¡GOL AZUL!" : "¡GOL NARANJA!");
   resetBodies();
+  configureModeActors();
   updateHud();
   window.setTimeout(() => { if (running && !paused) setMessage(""); }, 1400);
 }
@@ -342,7 +366,7 @@ remove fake wall assistfunction checkGoal() {
   const p = ballBody.translation();
   // La pelota tiene radio 1.5: el centro debe atravesar el plano y caber
   // entre los postes (5 m de semiancho menos el radio de la pelota).
-  if (Math.abs(p.z) > 29.2 && Math.abs(p.x) < CONFIG.goalHalfWidth - 1.6 && p.y > 1.5 && p.y < CONFIG.goalHeight) {
+  if (Math.abs(p.z) > 29.2 && Math.abs(p.x) < CONFIG.goalHalfWidth - 1.6 && p.y >= 1.4 && p.y < CONFIG.goalHeight) {
     goal(p.z < 0 ? "blue" : "orange");
   }
 }
@@ -382,6 +406,7 @@ window.addEventListener("keydown", (event) => {
   if (event.code === "Space" && !event.repeat && running && !paused) jumpQueued = true;
   if (event.code === "KeyP" && !event.repeat) togglePause();
   if (event.code === "KeyC" && !event.repeat) toggleCameraMode();
+  if (event.code === "KeyR" && !event.repeat && running && !paused && gameMode === "training") resetBall();
 });
 window.addEventListener("keyup", (event) => keys.delete(event.code));
 window.addEventListener("blur", () => keys.clear());
@@ -403,6 +428,11 @@ document.addEventListener("visibilitychange", () => {
 $("start").addEventListener("click", startMatch);
 $("pause").addEventListener("click", togglePause);
 $("cameraMode").addEventListener("click", toggleCameraMode);
+$("gameMode").addEventListener("change", () => {
+  $("modeDescription").textContent = $("gameMode").value === "training"
+    ? "Entrena sin rival ni cronómetro. Pulsa R para recolocar la pelota."
+    : "Juega contra la IA y marca más goles en 3 minutos.";
+});
 window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
