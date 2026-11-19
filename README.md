@@ -1,4 +1,4 @@
-# Rocket-Legue
+# NEON STRIKE
 
 Juego original de fútbol con coches en 3D, desarrollado con **Three.js**, **Rapier 3D** y **Vite**.
 
@@ -15,29 +15,53 @@ Abre la dirección local que muestre Vite en el terminal.
 
 ## Controles
 
-| Tecla | Acción |
+| Tecla / mando | Acción |
 |---|---|
 | W / ↑ | Acelerar |
 | S / ↓ | Marcha atrás |
 | A / ← | Girar a la izquierda |
 | D / → | Girar a la derecha |
-| Espacio | Saltar en tierra / voltereta aérea en el aire |
-| Shift | Turbo |
-| Control | Derrape |
+| Espacio / A (mando) | Saltar en tierra / voltereta aérea en el aire |
+| Shift / B (mando) | Turbo |
+| Control / X (mando) | Derrape |
 | Q / E | Control de giro en el aire |
+| C | Cambiar entre cámara del coche y de la pelota |
 | P | Pausar |
+| Stick izquierdo | Dirección y control aéreo |
+| Gatillos LT / RT | Marcha atrás / aceleración |
+
+El mando utiliza la Gamepad API del navegador. La asignación exacta puede variar según el dispositivo.
 
 ## Estructura
 
-- `src/main.js`: escena 3D, interfaz, cámara y bucle de partida.
+- `src/main.js`: escena 3D, interfaz, cámara, entrada y bucle de partida.
 - `src/physics.js`: inicialización y actualización del mundo Rapier.
 - `src/car.js`: cuerpo físico y control del coche.
 - `src/ball.js`: cuerpo físico de la pelota.
 - `index.html`: menú y HUD.
 
-## Estado actual
+## Estado de desarrollo
 
-La base jugable incluye un coche, pelota con colisiones físicas, estadio, porterías, marcador, temporizador, turbo, salto y pausa. Es todavía un prototipo: faltan IA más competitiva, cámara más avanzada, agarre real en paredes, menús de garaje, multijugador en red y pruebas de rendimiento. El control aéreo y la IA actuales son una primera versión experimental.
+### Ya implementado en esta fase
+
+- Partido local contra un rival controlado por IA básica.
+- Coche conducible, aceleración, frenado/marcha atrás, dirección y derrape.
+- Turbo con reserva de energía.
+- Salto y maniobra aérea inicial.
+- Pelota 3D con colisiones, rebotes y rotación.
+- Estadio con límites físicos, porterías, marcador y cronómetro.
+- Pausa, reinicio tras gol y protección al cambiar de pestaña.
+- Cámara dinámica del coche y modo de seguimiento de pelota.
+- Entrada de teclado y compatibilidad inicial con mandos mediante Gamepad API.
+- Compilación de producción con Vite.
+
+### Pendiente: siguientes fases
+
+1. **Jugabilidad y físicas:** salto doble real, volteretas direccionales diferenciadas, adherencia física a paredes/techo, tuning de impactos y pruebas de equilibrio.
+2. **Partidas locales:** equipos 1v1, 2v2 y 3v3 reales, entrenamiento, práctica y selección de estadios con sus respectivas colisiones.
+3. **Interfaz y personalización:** garaje funcional, coches y pinturas originales, ajustes persistentes de controles/gráficos/sonido, pantallas de resultado.
+4. **Multijugador online:** servicio de servidor dedicado autoritativo, salas con códigos, matchmaking, sincronización, reconexión y medición de ping. No está implementado todavía; no se presenta el juego local como online.
+5. **Calidad y validación:** pruebas automatizadas de físicas y lógica, pruebas en navegadores/dispositivos, rendimiento, accesibilidad y revisión de errores.
 
 ## Compilar
 
@@ -45,4 +69,4 @@ La base jugable incluye un coche, pelota con colisiones físicas, estadio, porte
 npm run build
 ```
 
-El proyecto es independiente y no utiliza código ni recursos propietarios de otros videojuegos.
+El proyecto es independiente y no utiliza nombres, logotipos, modelos ni recursos propietarios de otros videojuegos.
