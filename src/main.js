@@ -84,6 +84,15 @@ function createCarVisual(bodyColor = 0x06aaff, glowColor = 0x023b72) {
   glass.position.set(0, 0.72, -0.72);
   group.add(glass);
 
+  const boostFlame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.34, 1.25, 16),
+    new THREE.MeshBasicMaterial({ color: 0x35dfff, transparent: true, opacity: 0.9 })
+  );
+  boostFlame.rotation.x = -Math.PI / 2;
+  boostFlame.position.set(0, 0.05, 2.15);
+  boostFlame.visible = false;
+  group.add(boostFlame);
+
   const wheels = [];
   for (const x of [-1.05, 1.05]) {
     for (const z of [-1.15, 1.15]) {
@@ -95,7 +104,7 @@ function createCarVisual(bodyColor = 0x06aaff, glowColor = 0x023b72) {
     }
   }
   scene.add(group);
-  return { group, wheels };
+  return { group, wheels, boostFlame };
 }
 
 function createBallVisual() {
@@ -218,8 +227,9 @@ function readInput(dt) {
   if (grounded) flipUsed = false;
   const flipPressed = jumpQueued && !grounded && !flipUsed;
   if (flipPressed) flipUsed = true;
+  const drifting = keys.has("ControlLeft") || keys.has("ControlRight");
   driveCar(carBody, {
-    throttle, steer, boost: boosting, jumpPressed: jumpQueued && grounded,
+    throttle, steer, boost: boosting, drift: drifting, jumpPressed: jumpQueued && grounded,
     flipPressed, grounded,
     airPitch: Number(keys.has("KeyS")) - Number(keys.has("KeyW")),
     airRoll: Number(keys.has("KeyD")) - Number(keys.has("KeyA")),
@@ -236,6 +246,7 @@ function syncVisuals() {
   carVisual.group.quaternion.set(carRot.x, carRot.y, carRot.z, carRot.w);
   const speed = Math.hypot(carBody.linvel().x, carBody.linvel().z);
   for (const wheel of carVisual.wheels) wheel.rotation.x -= speed * 0.012;
+  carVisual.boostFlame.visible = (keys.has("ShiftLeft") || keys.has("ShiftRight")) && boost > 0;
 
   const rivalPos = rivalBody.translation();
   const rivalRot = rivalBody.rotation();
@@ -254,8 +265,14 @@ function updateCamera(dt) {
   const yaw = Math.atan2(2 * (r.w * r.y + r.x * r.z), 1 - 2 * (r.y * r.y + r.z * r.z));
   const offset = new THREE.Vector3(0, 7, 11).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
   const target = new THREE.Vector3(p.x, p.y, p.z).add(offset);
+  const ballPosition = ballBody.translation();
+  const lookPoint = new THREE.Vector3(
+    p.x * 0.72 + ballPosition.x * 0.28,
+    p.y + 1 + Math.max(0, ballPosition.y - 2) * 0.12,
+    p.z * 0.72 + ballPosition.z * 0.28
+  );
   camera.position.lerp(target, 1 - Math.exp(-5 * dt));
-  camera.lookAt(p.x, p.y + 1, p.z);
+  camera.lookAt(lookPoint);
 }
 
 function updateRivalAI(dt) {
@@ -286,6 +303,28 @@ function updateRivalAI(dt) {
   }, dt);
 }
 
+function updateWallAssist(dt) {
+  const p = carBody.translation();
+  const v = carBody.linvel();
+  const throttle = Number(keys.has("KeyW") || keys.has("ArrowUp")) - Number(keys.has("KeyS") || keys.has("ArrowDown"));
+  const nearLeft = p.x < -16.1;
+  const nearRight = p.x > 16.1;
+  const climbing = (nearLeft || nearRight) && p.y > 0.7 && p.y < 7.2 && throttle > 0.1;
+
+  if (climbing) {
+    // Asistencia arcade para subir por las paredes laterales.
+    const inward = nearLeft ? 1 : -1;
+    carBody.applyImpulse({ x: inward * 18 * dt, y: 62 * dt, z: 0 }, true);
+    carVisual.group.rotation.z = nearLeft ? -Math.PI / 3 : Math.PI / 3;
+  } else {
+    carVisual.group.rotation.z = 0;
+  }
+
+  if (p.y > 7.5 && v.y > 0) {
+    carBody.setLinvel({ x: v.x, y: Math.min(v.y, 1.5), z: v.z }, true);
+  }
+}
+
 function checkGoal() {
   const p = ballBody.translation();
   if (Math.abs(p.z) > 30.2 && Math.abs(p.x) < CONFIG.goalHalfWidth && p.y < CONFIG.goalHeight) {
@@ -309,6 +348,7 @@ function animate(now) {
   if (running && !paused) {
     readInput(dt);
     updateRivalAI(dt);
+    updateWallAssist(dt);
     stepPhysics(world, dt);
     checkGoal();
     remaining = Math.max(0, remaining - dt);
