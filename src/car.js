@@ -50,6 +50,13 @@ export function driveCar(body, input, dt) {
     }, true);
   }
 
+  if (input.drift && input.grounded) {
+    // Reduce la velocidad lateral para permitir derrapes controlados.
+    const right = { x: Math.cos(yaw), z: -Math.sin(yaw) };
+    const lateralSpeed = velocity.x * right.x + velocity.z * right.z;
+    body.applyImpulse({ x: -right.x * lateralSpeed * 7 * dt, y: 0, z: -right.z * lateralSpeed * 7 * dt }, true);
+  }
+
   if (input.jumpPressed && input.grounded) {
     body.applyImpulse({ x: 0, y: 850, z: 0 }, true);
   }
