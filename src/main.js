@@ -54,6 +54,7 @@ function makeArena() {
   scene.add(ring);
 
   // Paredes laterales y fondos divididos para dejar libres las porterías.
+  addBox(0, 14, 0, 36, 0.5, 60, 0x0b1b2b);
   addBox(-18.5, 4, 0, 1, 8, 62, 0x153d59);
   addBox(18.5, 4, 0, 1, 8, 62, 0x153d59);
   for (const z of [-30.5, 30.5]) {
