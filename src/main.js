@@ -183,6 +183,8 @@ function resetBodies() {
 }
 
 function startMatch() {
+  // Oculta el menú al instante para que el clic tenga respuesta visual.
+  $("menu").style.display = "none";
   blueScore = 0;
   orangeScore = 0;
   remaining = CONFIG.matchSeconds;
