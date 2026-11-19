@@ -167,6 +167,11 @@ function updateHud() {
 }
 
 function resetBodies() {
+  // Cada saque empieza con controles y estado aéreo limpios.
+  keys.clear();
+  jumpQueued = false;
+  flipUsed = false;
+  wallTilt = 0;
   carBody.setTranslation({ x: 0, y: 1.1, z: 15 }, true);
   carBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
   carBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
@@ -372,11 +377,27 @@ window.addEventListener("keydown", (event) => {
 });
 window.addEventListener("keyup", (event) => keys.delete(event.code));
 window.addEventListener("blur", () => keys.clear());
+
+// Evita que el coche siga acelerando o que el partido avance en segundo plano.
+// Al volver a la pestaña, el jugador reanuda la partida manualmente.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    keys.clear();
+    jumpQueued = false;
+    if (running && !paused) {
+      paused = true;
+      $("pause").textContent = "CONTINUAR";
+      setMessage("PAUSA");
+    }
+  }
+});
+
 $("start").addEventListener("click", startMatch);
 $("pause").addEventListener("click", togglePause);
 window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(innerWidth, innerHeight);
 });
 
