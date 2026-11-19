@@ -61,9 +61,20 @@ export function driveCar(body, input, dt) {
     body.applyImpulse({ x: 0, y: 850, z: 0 }, true);
   }
 
-  if (input.flipPressed && !input.grounded) {
-    body.applyImpulse({ x: forward.x * 520, y: 120, z: forward.z * 520 }, true);
-    body.applyTorqueImpulse({ x: 95, y: 0, z: 0 }, true);
+  if (input.doubleJumpPressed && !input.grounded) {
+    // Segundo salto/dodge: combina impulso vertical con dirección elegida.
+    const right = { x: Math.cos(yaw), z: -Math.sin(yaw) };
+    const forwardInput = Math.max(-1, Math.min(1, input.throttle ?? 0));
+    const sideInput = Math.max(-1, Math.min(1, input.steer ?? 0));
+    const dodgeStrength = 360;
+    body.applyImpulse({
+      x: forward.x * forwardInput * dodgeStrength + right.x * sideInput * dodgeStrength,
+      y: 540,
+      z: forward.z * forwardInput * dodgeStrength + right.z * sideInput * dodgeStrength
+    }, true);
+    if (Math.abs(forwardInput) + Math.abs(sideInput) > 0.1) {
+      body.applyTorqueImpulse({ x: forwardInput * 55, y: 0, z: -sideInput * 55 }, true);
+    }
   }
 
   const maxSpeed = boost ? 32 : 23;
