@@ -4,6 +4,7 @@ import { createCarBody, driveCar } from "./car.js";
 import { createBallBody } from "./ball.js";
 import { getGameMode, isGoalPosition } from "./gameModes.js";
 
+async function initGame() {
 const $ = (id) => document.getElementById(id);
 const CONFIG = { matchSeconds: 180, arenaX: 18, arenaZ: 30, goalHalfWidth: 5, goalHeight: 4.5 };
 
@@ -461,3 +462,19 @@ camera.position.set(0, 9, 27);
 camera.lookAt(0, 1, 15);
 updateHud();
 requestAnimationFrame(animate);
+
+}
+
+initGame().catch((error) => {
+  const message = error && error.message ? error.message : String(error);
+  if (typeof window.showLoadError === "function") window.showLoadError(message);
+  else {
+    const panel = document.getElementById("loadError");
+    if (panel) {
+      panel.textContent = "No se pudo iniciar el juego: " + message;
+      panel.style.display = "block";
+      document.getElementById("menu").style.display = "flex";
+    }
+  }
+  console.error("NEON STRIKE initialization failed:", error);
+});
