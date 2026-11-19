@@ -153,6 +153,7 @@ let boost = 100;
 let jumpQueued = false;
 let flipUsed = false;
 let wallTilt = 0;
+let cameraMode = "car";
 let lastGoalAt = -10;
 let lastFrame = performance.now();
 
@@ -222,9 +223,14 @@ function goal(team) {
 }
 
 function readInput(dt) {
-  const throttle = Number(keys.has("KeyW") || keys.has("ArrowUp")) - Number(keys.has("KeyS") || keys.has("ArrowDown"));
-  const steer = Number(keys.has("KeyA") || keys.has("ArrowLeft")) - Number(keys.has("KeyD") || keys.has("ArrowRight"));
-  const wantsBoost = keys.has("ShiftLeft") || keys.has("ShiftRight");
+  const gamepad = navigator.getGamepads ? Array.from(navigator.getGamepads()).find(Boolean) : null;
+  const axis = (value) => Math.abs(value ?? 0) < 0.16 ? 0 : value;
+  const padThrottle = gamepad ? (gamepad.buttons[7]?.value ?? 0) - (gamepad.buttons[6]?.value ?? 0) : 0;
+  const keyboardThrottle = Number(keys.has("KeyW") || keys.has("ArrowUp")) - Number(keys.has("KeyS") || keys.has("ArrowDown"));
+  const throttle = Math.max(-1, Math.min(1, keyboardThrottle + padThrottle));
+  const keyboardSteer = Number(keys.has("KeyA") || keys.has("ArrowLeft")) - Number(keys.has("KeyD") || keys.has("ArrowRight"));
+  const steer = Math.max(-1, Math.min(1, keyboardSteer + (gamepad ? axis(gamepad.axes[0]) : 0)));
+  const wantsBoost = keys.has("ShiftLeft") || keys.has("ShiftRight") || Boolean(gamepad?.buttons[1]?.pressed);
   const boosting = wantsBoost && throttle > 0 && boost > 0;
   if (boosting) boost = Math.max(0, boost - 34 * dt);
   else boost = Math.min(100, boost + 9 * dt);
@@ -235,11 +241,12 @@ function readInput(dt) {
   if (grounded) flipUsed = false;
   const flipPressed = jumpQueued && !grounded && !flipUsed;
   if (flipPressed) flipUsed = true;
-  const drifting = keys.has("ControlLeft") || keys.has("ControlRight");
+  const drifting = keys.has("ControlLeft") || keys.has("ControlRight") || Boolean(gamepad?.buttons[2]?.pressed);
+  const gamepadJump = Boolean(gamepad?.buttons[0]?.pressed);
   driveCar(carBody, {
-    throttle, steer, boost: boosting, drift: drifting, jumpPressed: jumpQueued && grounded,
+    throttle, steer, boost: boosting, drift: drifting, jumpPressed: (jumpQueued || gamepadJump) && grounded,
     flipPressed, grounded,
-    airPitch: Number(keys.has("KeyS")) - Number(keys.has("KeyW")),
+    airPitch: Number(keys.has("KeyS")) - Number(keys.has("KeyW")) + (gamepad ? axis(gamepad.axes[1]) : 0),
     airRoll: Number(keys.has("KeyD")) - Number(keys.has("KeyA")),
     airYaw: Number(keys.has("KeyE")) - Number(keys.has("KeyQ"))
   }, dt);
@@ -272,16 +279,27 @@ function updateCamera(dt) {
   const p = carBody.translation();
   const r = carBody.rotation();
   const yaw = Math.atan2(2 * (r.w * r.y + r.x * r.z), 1 - 2 * (r.y * r.y + r.z * r.z));
-  const offset = new THREE.Vector3(0, 7, 11).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-  const target = new THREE.Vector3(p.x, p.y, p.z).add(offset);
   const ballPosition = ballBody.translation();
-  const lookPoint = new THREE.Vector3(
-    p.x * 0.72 + ballPosition.x * 0.28,
-    p.y + 1 + Math.max(0, ballPosition.y - 2) * 0.12,
-    p.z * 0.72 + ballPosition.z * 0.28
-  );
-  camera.position.lerp(target, 1 - Math.exp(-5 * dt));
+  const carTarget = new THREE.Vector3(p.x, p.y, p.z);
+  const ballTarget = new THREE.Vector3(ballPosition.x, ballPosition.y, ballPosition.z);
+  const targetPoint = cameraMode === "ball" ? ballTarget : carTarget;
+  const offset = cameraMode === "ball"
+    ? new THREE.Vector3(0, 11, 16)
+    : new THREE.Vector3(0, 7, 11).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+  const desiredPosition = targetPoint.clone().add(offset);
+  const lookPoint = cameraMode === "ball"
+    ? ballTarget
+    : new THREE.Vector3(
+      p.x * 0.72 + ballPosition.x * 0.28,
+      p.y + 1 + Math.max(0, ballPosition.y - 2) * 0.12,
+      p.z * 0.72 + ballPosition.z * 0.28
+    );
+  camera.position.lerp(desiredPosition, 1 - Math.exp(-5 * dt));
   camera.lookAt(lookPoint);
+}
+function toggleCameraMode() {
+  cameraMode = cameraMode === "car" ? "ball" : "car";
+  $("cameraMode").textContent = cameraMode === "car" ? "CÁMARA: COCHE" : "CÁMARA: PELOTA";
 }
 
 function updateRivalAI(dt) {
@@ -374,6 +392,7 @@ window.addEventListener("keydown", (event) => {
   keys.add(event.code);
   if (event.code === "Space" && !event.repeat && running && !paused) jumpQueued = true;
   if (event.code === "KeyP" && !event.repeat) togglePause();
+  if (event.code === "KeyC" && !event.repeat) toggleCameraMode();
 });
 window.addEventListener("keyup", (event) => keys.delete(event.code));
 window.addEventListener("blur", () => keys.clear());
@@ -394,6 +413,7 @@ document.addEventListener("visibilitychange", () => {
 
 $("start").addEventListener("click", startMatch);
 $("pause").addEventListener("click", togglePause);
+$("cameraMode").addEventListener("click", toggleCameraMode);
 window.addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
