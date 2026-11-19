@@ -88,7 +88,7 @@ function createCarVisual(bodyColor = 0x06aaff, glowColor = 0x023b72) {
     new THREE.ConeGeometry(0.34, 1.25, 16),
     new THREE.MeshBasicMaterial({ color: 0x35dfff, transparent: true, opacity: 0.9 })
   );
-  boostFlame.rotation.x = -Math.PI / 2;
+  boostFlame.rotation.x = Math.PI / 2;
   boostFlame.position.set(0, 0.05, 2.15);
   boostFlame.visible = false;
   group.add(boostFlame);
@@ -152,6 +152,7 @@ let orangeScore = 0;
 let boost = 100;
 let jumpQueued = false;
 let flipUsed = false;
+let wallTilt = 0;
 let lastGoalAt = -10;
 let lastFrame = performance.now();
 
@@ -244,6 +245,7 @@ function syncVisuals() {
   const carRot = carBody.rotation();
   carVisual.group.position.set(carPos.x, carPos.y, carPos.z);
   carVisual.group.quaternion.set(carRot.x, carRot.y, carRot.z, carRot.w);
+  carVisual.group.rotateZ(wallTilt);
   const speed = Math.hypot(carBody.linvel().x, carBody.linvel().z);
   for (const wheel of carVisual.wheels) wheel.rotation.x -= speed * 0.012;
   carVisual.boostFlame.visible = (keys.has("ShiftLeft") || keys.has("ShiftRight")) && boost > 0;
@@ -315,9 +317,9 @@ function updateWallAssist(dt) {
     // Asistencia arcade para subir por las paredes laterales.
     const inward = nearLeft ? 1 : -1;
     carBody.applyImpulse({ x: inward * 18 * dt, y: 62 * dt, z: 0 }, true);
-    carVisual.group.rotation.z = nearLeft ? -Math.PI / 3 : Math.PI / 3;
+    wallTilt = nearLeft ? -Math.PI / 3 : Math.PI / 3;
   } else {
-    carVisual.group.rotation.z = 0;
+    wallTilt = 0;
   }
 
   if (p.y > 7.5 && v.y > 0) {
