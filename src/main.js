@@ -151,8 +151,10 @@ let blueScore = 0;
 let orangeScore = 0;
 let boost = 100;
 let jumpQueued = false;
-let flipUsed = false;
-let wallTilt = 0;
+let jumpCount = 0;
+let gamepadJumpWasDown = false;
+let boostActive = false;
+let gameMode = "match";
 let cameraMode = "car";
 let lastGoalAt = -10;
 let lastFrame = performance.now();
@@ -163,7 +165,7 @@ function updateHud() {
   $("orangeScore").textContent = String(orangeScore);
   const mins = Math.floor(remaining / 60);
   const secs = Math.floor(remaining % 60);
-  $("timer").textContent = String(mins).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
+  $("timer").textContent = gameMode === "training" ? "PRÁCTICA" : String(mins).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
   $("boost").style.width = boost + "%";
 }
 
@@ -171,8 +173,9 @@ function resetBodies() {
   // Cada saque empieza con controles y estado aéreo limpios.
   keys.clear();
   jumpQueued = false;
-  flipUsed = false;
-  wallTilt = 0;
+  jumpCount = 0;
+  gamepadJumpWasDown = false;
+  boostActive = false;
   carBody.setTranslation({ x: 0, y: 1.1, z: 15 }, true);
   carBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
   carBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
@@ -181,7 +184,6 @@ function resetBodies() {
   rivalBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
   rivalBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
   rivalBody.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
-  flipUsed = false;
   ballBody.setTranslation({ x: 0, y: 2, z: 0 }, true);
   ballBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
   ballBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
@@ -191,6 +193,7 @@ function resetBodies() {
 function startMatch() {
   // Oculta el menú al instante para que el clic tenga respuesta visual.
   $("menu").style.display = "none";
+  gameMode = $("gameMode").value;
   blueScore = 0;
   orangeScore = 0;
   remaining = CONFIG.matchSeconds;
@@ -214,9 +217,11 @@ function goal(team) {
   const now = performance.now() / 1000;
   if (now - lastGoalAt < 1.8) return;
   lastGoalAt = now;
-  if (team === "blue") blueScore += 1;
-  else orangeScore += 1;
-  setMessage(team === "blue" ? "¡GOL AZUL!" : "¡GOL NARANJA!");
+  if (gameMode === "match") {
+    if (team === "blue") blueScore += 1;
+    else orangeScore += 1;
+  }
+  setMessage(gameMode === "training" ? "¡GOL! SIGUE PRACTICANDO" : team === "blue" ? "¡GOL AZUL!" : "¡GOL NARANJA!");
   resetBodies();
   updateHud();
   window.setTimeout(() => { if (running && !paused) setMessage(""); }, 1400);
@@ -231,22 +236,26 @@ function readInput(dt) {
   const keyboardSteer = Number(keys.has("KeyA") || keys.has("ArrowLeft")) - Number(keys.has("KeyD") || keys.has("ArrowRight"));
   const steer = Math.max(-1, Math.min(1, keyboardSteer + (gamepad ? axis(gamepad.axes[0]) : 0)));
   const wantsBoost = keys.has("ShiftLeft") || keys.has("ShiftRight") || Boolean(gamepad?.buttons[1]?.pressed);
-  const boosting = wantsBoost && throttle > 0 && boost > 0;
-  if (boosting) boost = Math.max(0, boost - 34 * dt);
+  boostActive = wantsBoost && throttle > 0 && boost > 0;
+  if (boostActive) boost = Math.max(0, boost - 34 * dt);
   else boost = Math.min(100, boost + 9 * dt);
 
   const carPosition = carBody.translation();
   const carVelocity = carBody.linvel();
   const grounded = carPosition.y <= 0.56 && Math.abs(carVelocity.y) <= 0.9;
-  if (grounded) flipUsed = false;
-  const flipPressed = jumpQueued && !grounded && !flipUsed;
-  if (flipPressed) flipUsed = true;
-  const drifting = keys.has("ControlLeft") || keys.has("ControlRight") || Boolean(gamepad?.buttons[2]?.pressed);
+  if (grounded) jumpCount = 0;
   const gamepadJump = Boolean(gamepad?.buttons[0]?.pressed);
+  const jumpPressed = jumpQueued || (gamepadJump && !gamepadJumpWasDown);
+  gamepadJumpWasDown = gamepadJump;
+  const firstJump = jumpPressed && grounded;
+  const doubleJump = jumpPressed && !grounded && jumpCount === 1;
+  if (firstJump) jumpCount = 1;
+  else if (doubleJump) jumpCount = 2;
+  const drifting = keys.has("ControlLeft") || keys.has("ControlRight") || Boolean(gamepad?.buttons[2]?.pressed);
   driveCar(carBody, {
-    throttle, steer, boost: boosting, drift: drifting, jumpPressed: (jumpQueued || gamepadJump) && grounded,
-    flipPressed, grounded,
-    airPitch: Number(keys.has("KeyS")) - Number(keys.has("KeyW")) + (gamepad ? axis(gamepad.axes[1]) : 0),
+    throttle, steer, boost: boostActive, drift: drifting,
+    jumpPressed: firstJump, doubleJumpPressed: doubleJump, grounded,
+    airPitch: Number(keys.has("KeyS")) - Number(keys.has("KeyW")) - (gamepad ? axis(gamepad.axes[1]) : 0),
     airRoll: Number(keys.has("KeyD")) - Number(keys.has("KeyA")),
     airYaw: Number(keys.has("KeyE")) - Number(keys.has("KeyQ"))
   }, dt);
@@ -259,10 +268,9 @@ function syncVisuals() {
   const carRot = carBody.rotation();
   carVisual.group.position.set(carPos.x, carPos.y, carPos.z);
   carVisual.group.quaternion.set(carRot.x, carRot.y, carRot.z, carRot.w);
-  carVisual.group.rotateZ(wallTilt);
   const speed = Math.hypot(carBody.linvel().x, carBody.linvel().z);
   for (const wheel of carVisual.wheels) wheel.rotation.x -= speed * 0.012;
-  carVisual.boostFlame.visible = (keys.has("ShiftLeft") || keys.has("ShiftRight")) && boost > 0;
+  carVisual.boostFlame.visible = boostActive;
 
   const rivalPos = rivalBody.translation();
   const rivalRot = rivalBody.rotation();
@@ -330,31 +338,11 @@ function updateRivalAI(dt) {
   }, dt);
 }
 
-function updateWallAssist(dt) {
-  const p = carBody.translation();
-  const v = carBody.linvel();
-  const throttle = Number(keys.has("KeyW") || keys.has("ArrowUp")) - Number(keys.has("KeyS") || keys.has("ArrowDown"));
-  const nearLeft = p.x < -16.1;
-  const nearRight = p.x > 16.1;
-  const climbing = (nearLeft || nearRight) && p.y > 0.7 && p.y < 7.2 && throttle > 0.1;
-
-  if (climbing) {
-    // Asistencia arcade para subir por las paredes laterales.
-    const inward = nearLeft ? 1 : -1;
-    carBody.applyImpulse({ x: inward * 18 * dt, y: 62 * dt, z: 0 }, true);
-    wallTilt = nearLeft ? -Math.PI / 3 : Math.PI / 3;
-  } else {
-    wallTilt = 0;
-  }
-
-  if (p.y > 7.5 && v.y > 0) {
-    carBody.setLinvel({ x: v.x, y: Math.min(v.y, 1.5), z: v.z }, true);
-  }
-}
-
-function checkGoal() {
+remove fake wall assistfunction checkGoal() {
   const p = ballBody.translation();
-  if (Math.abs(p.z) > 30.2 && Math.abs(p.x) < CONFIG.goalHalfWidth && p.y < CONFIG.goalHeight) {
+  // La pelota tiene radio 1.5: el centro debe atravesar el plano y caber
+  // entre los postes (5 m de semiancho menos el radio de la pelota).
+  if (Math.abs(p.z) > 29.2 && Math.abs(p.x) < CONFIG.goalHalfWidth - 1.6 && p.y > 1.5 && p.y < CONFIG.goalHeight) {
     goal(p.z < 0 ? "blue" : "orange");
   }
 }
@@ -374,12 +362,13 @@ function animate(now) {
 
   if (running && !paused) {
     readInput(dt);
-    updateRivalAI(dt);
-    updateWallAssist(dt);
+    if (gameMode === "match") updateRivalAI(dt);
     stepPhysics(world, dt);
     checkGoal();
-    remaining = Math.max(0, remaining - dt);
-    if (remaining === 0) finishMatch();
+    if (gameMode === "match") {
+      remaining = Math.max(0, remaining - dt);
+      if (remaining === 0) finishMatch();
+    }
     updateHud();
     updateCamera(dt);
   }
