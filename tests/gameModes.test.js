@@ -20,7 +20,9 @@ test("un gol válido atraviesa el plano dentro del hueco de la portería", () =>
 });
 
 test("la pelota no marca si golpea un poste, el larguero o pasa por encima", () => {
-  assert.equal(isGoalPosition({ x: 4, y: 2, z: 29.3 }), false);
+  assert.equal(isGoalPosition({ x: 3.4, y: 2, z: 29.3 }), false);
+  assert.equal(isGoalPosition({ x: 0, y: 2.5, z: 29.3 }), true);
+  assert.equal(isGoalPosition({ x: 0, y: 3, z: 29.3 }), false);
   assert.equal(isGoalPosition({ x: 0, y: 4.6, z: 29.3 }), false);
   assert.equal(isGoalPosition({ x: 0, y: 6, z: 29.3 }), false);
   assert.equal(isGoalPosition({ x: 0, y: 2, z: 28 }), false);
