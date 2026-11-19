@@ -122,6 +122,9 @@ for (const z of [-30.5, 30.5]) {
   fixedBox(-11.5, 4, z, 6.5, 4, 0.5);
   fixedBox(11.5, 4, z, 6.5, 4, 0.5);
   fixedBox(0, 6.5, z, 5, 1.5, 0.5);
+  fixedBox(-5, 2.25, z, 0.18, 2.25, 0.18);
+  fixedBox(5, 2.25, z, 0.18, 2.25, 0.18);
+  fixedBox(0, 4.5, z, 5, 0.18, 0.18);
 }
 
 const carBody = createCarBody(RAPIER, world, { x: 0, y: 1.1, z: 15 });
@@ -201,7 +204,10 @@ function readInput(dt) {
   if (boosting) boost = Math.max(0, boost - 34 * dt);
   else boost = Math.min(100, boost + 9 * dt);
 
-  driveCar(carBody, { throttle, steer, boost: boosting, jumpPressed: jumpQueued }, dt);
+  const carPosition = carBody.translation();
+  const carVelocity = carBody.linvel();
+  const grounded = carPosition.y <= 1.08 && carVelocity.y <= 0.25;
+  driveCar(carBody, { throttle, steer, boost: boosting, jumpPressed: jumpQueued, grounded }, dt);
   jumpQueued = false;
   $("boost").style.width = boost + "%";
 }
