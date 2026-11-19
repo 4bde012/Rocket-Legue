@@ -14,6 +14,39 @@ export function createCarBody(RAPIER, world, position = { x: 0, y: 1.1, z: 12 })
   return body;
 }
 
+export function applySurfaceDriveAssist(body, dt, bounds = {}) {
+  const halfWidth = bounds.halfWidth ?? 18;
+  const halfLength = bounds.halfLength ?? 30;
+  const ceilingHeight = bounds.ceilingHeight ?? 13.5;
+  const p = body.translation();
+  let surface = "floor";
+  let inward = null;
+
+  // Asistencia arcade de adherencia para recorrer paredes y techo.
+  if (p.y >= ceilingHeight - 1.15) {
+    surface = "ceiling";
+    inward = { x: 0, y: -1, z: 0 };
+  } else if (Math.abs(p.x) >= halfWidth - 1.45 && p.y > 0.8) {
+    surface = "wall";
+    inward = { x: -Math.sign(p.x), y: 0, z: 0 };
+  } else if (Math.abs(p.z) >= halfLength - 1.45 && p.y > 0.8 && Math.abs(p.x) > 6.5) {
+    surface = "wall";
+    inward = { x: 0, y: 0, z: -Math.sign(p.z) };
+  }
+
+  if (inward) {
+    body.setGravityScale(0.08, true);
+    body.applyImpulse({
+      x: inward.x * 22 * dt,
+      y: inward.y * 22 * dt,
+      z: inward.z * 22 * dt
+    }, true);
+  } else {
+    body.setGravityScale(1, true);
+  }
+  return surface;
+}
+
 export function driveCar(body, input, dt) {
   const throttle = Math.max(-1, Math.min(1, input.throttle ?? 0));
   const steer = Math.max(-1, Math.min(1, input.steer ?? 0));
@@ -71,7 +104,14 @@ export function driveCar(body, input, dt) {
       z: forward.z * forwardInput * dodgeStrength + right.z * sideInput * dodgeStrength
     }, true);
     if (Math.abs(forwardInput) + Math.abs(sideInput) > 0.1) {
-      body.applyTorqueImpulse({ x: forwardInput * 55, y: 0, z: -sideInput * 55 }, true);
+      // Voltereta completa: el segundo salto combina dodge y rotación.
+      const flipPitch = forwardInput || (sideInput === 0 ? 1 : 0);
+      const flipRoll = sideInput;
+      body.applyTorqueImpulse({
+        x: -flipPitch * 165,
+        y: sideInput * 35,
+        z: -flipRoll * 165
+      }, true);
     }
   }
 
