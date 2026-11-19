@@ -1,4 +1,4 @@
-import RAPIER from "@dimforge/rapier3d";
+import RAPIER from "@dimforge/rapier3d-compat";
 
 export async function createPhysicsWorld() {
   await RAPIER.init();
