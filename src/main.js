@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { createPhysicsWorld, stepPhysics } from "./physics.js";
-import { createCarBody, driveCar } from "./car.js";
+import { createCarBody, driveCar, applySurfaceDriveAssist } from "./car.js";
 import { createBallBody } from "./ball.js";
 import { getGameMode, isGoalPosition } from "./gameModes.js";
 
@@ -129,6 +129,8 @@ function fixedBox(x, y, z, hx, hy, hz) {
 }
 fixedBox(-18.5, 4, 0, 0.5, 4, 31);
 fixedBox(18.5, 4, 0, 0.5, 4, 31);
+// Techo físico para permitir conducción invertida en la parte superior.
+fixedBox(0, 14, 0, 18, 0.5, 30);
 for (const z of [-30.5, 30.5]) {
   fixedBox(-11.5, 4, z, 6.5, 4, 0.5);
   fixedBox(11.5, 4, z, 6.5, 4, 0.5);
@@ -273,7 +275,8 @@ function readInput(dt) {
 
   const carPosition = carBody.translation();
   const carVelocity = carBody.linvel();
-  const grounded = carPosition.y <= 0.56 && Math.abs(carVelocity.y) <= 0.9;
+  const surface = applySurfaceDriveAssist(carBody, dt, { halfWidth: 18, halfLength: 30, ceilingHeight: 13.5 });
+  const grounded = surface === "floor" && carPosition.y <= 0.56 && Math.abs(carVelocity.y) <= 0.9;
   if (grounded) jumpCount = 0;
   const gamepadJump = Boolean(gamepad?.buttons[0]?.pressed);
   const jumpPressed = jumpQueued || (gamepadJump && !gamepadJumpWasDown);
