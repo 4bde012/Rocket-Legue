@@ -53,6 +53,69 @@ function makeArena() {
   ring.position.y = 0.03;
   scene.add(ring);
 
+  // Césped con franjas alternas y áreas de portería.
+  for (let i = 0; i < 10; i += 1) {
+    const stripe = new THREE.Mesh(
+      new THREE.PlaneGeometry(36, 6),
+      new THREE.MeshBasicMaterial({ color: i % 2 ? 0x1a6a56 : 0x1d765d, side: THREE.DoubleSide })
+    );
+    stripe.rotation.x = -Math.PI / 2;
+    stripe.position.set(0, 0.012, -27 + i * 6);
+    scene.add(stripe);
+  }
+
+  const fieldMark = new THREE.LineBasicMaterial({ color: 0xd9f8ff, transparent: true, opacity: 0.9 });
+  const mark = (points, y = 0.045) => scene.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(points.map(([x, z]) => new THREE.Vector3(x, y, z))),
+    fieldMark
+  ));
+  for (const sign of [-1, 1]) {
+    const z = sign * 22;
+    mark([[-9,z], [9,z], [9,sign * 30], [-9,sign * 30], [-9,z]]);
+    mark([[-5,z], [5,z], [5,sign * 30], [-5,sign * 30], [-5,z]]);
+    mark([[-7,z], [7,z]]);
+  }
+
+  // Bordes luminosos y paneles de estadio.
+  for (const sign of [-1, 1]) {
+    addBox(sign * 17.72, 0.45, 0, 0.18, 0.9, 59, 0x09263b);
+    addBox(sign * 17.58, 0.9, 0, 0.12, 0.12, 59, 0x19cfff, { emissive: 0x087ba8 });
+    for (let i = 0; i < 14; i += 1) {
+      const panel = addBox(sign * 17.25, 2.1, -27 + i * 4, 0.22, 1.6, 3.35, i % 2 ? 0x123b58 : 0x174966);
+      panel.material.emissive = new THREE.Color(i % 2 ? 0x03101c : 0x062033);
+    }
+  }
+
+  // Redes de las porterías, dibujadas como malla fina.
+  for (const sign of [-1, 1]) {
+    const netMat = new THREE.LineBasicMaterial({ color: sign < 0 ? 0x24d9ff : 0xffa34f, transparent: true, opacity: 0.42 });
+    const vertices = [];
+    for (let x = -5; x <= 5.01; x += 1) {
+      vertices.push(new THREE.Vector3(x, 0.2, sign * 29.25), new THREE.Vector3(x, 4.3, sign * 29.25));
+    }
+    for (let y = 0.5; y <= 4.01; y += 0.7) {
+      vertices.push(new THREE.Vector3(-5, y, sign * 29.25), new THREE.Vector3(5, y, sign * 29.25));
+    }
+    scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(vertices), netMat));
+    const goalGlow = new THREE.PointLight(sign < 0 ? 0x12cfff : 0xff842c, 38, 17);
+    goalGlow.position.set(0, 4.5, sign * 27.8);
+    scene.add(goalGlow);
+  }
+
+  // Gradas compactas, focos y paneles de ambiente.
+  for (const sign of [-1, 1]) {
+    for (let row = 0; row < 3; row += 1) {
+      const stand = addBox(sign * (22 + row * 1.25), 1.5 + row * 1.05, 0, 1.8, 0.7, 55, row % 2 ? 0x18334d : 0x102a42);
+      stand.material.roughness = 0.82;
+    }
+    for (const z of [-23, -8, 8, 23]) {
+      const lamp = new THREE.PointLight(0x68dfff, 22, 20);
+      lamp.position.set(sign * 15.8, 10.5, z);
+      scene.add(lamp);
+      addBox(sign * 16.4, 10.5, z, 0.5, 0.18, 2.2, 0xc9f5ff, { emissive: 0x65cfff });
+    }
+  }
+
   // Paredes laterales y fondos divididos para dejar libres las porterías.
   addBox(0, 14, 0, 36, 0.5, 60, 0x0b1b2b);
   addBox(-18.5, 4, 0, 1, 8, 62, 0x153d59);
