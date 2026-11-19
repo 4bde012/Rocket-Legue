@@ -365,7 +365,7 @@ function updateRivalAI(dt) {
   }, dt);
 }
 
-remove fake wall assistfunction checkGoal() {
+function checkGoal() {
   const p = ballBody.translation();
   if (isGoalPosition(p, { goalHalfWidth: CONFIG.goalHalfWidth, goalHeight: CONFIG.goalHeight })) {
     goal(p.z < 0 ? "blue" : "orange");
